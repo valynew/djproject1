@@ -45,6 +45,51 @@ if ($method === 'POST') {
 }
 
 // ---------------------------
+// PUT: Update Data
+// ---------------------------
+elseif ($method === 'PUT') {
+    $data = json_decode(file_get_contents("php://input"));
+
+    if (!empty($data->id) && !empty($data->djname) && !empty($data->email) && !empty($data->phonenumber)) {
+        $id = $conn->real_escape_string($data->id);
+        $djname = $conn->real_escape_string($data->djname);
+        $email = $conn->real_escape_string($data->email);
+        $phonenumber = $conn->real_escape_string($data->phonenumber);
+
+        $sql = "UPDATE user SET djname = '$djname', email = '$email', phonenumber = '$phonenumber' WHERE id = $id";
+
+        if ($conn->query($sql) === TRUE) {
+            echo json_encode(["status" => true, "message" => "User updated successfully"]);
+        } else {
+            echo json_encode(["status" => false, "message" => "Update failed: " . $conn->error]);
+        }
+    } else {
+        echo json_encode(["status" => false, "message" => "Missing one or more required fields: id, djname, email, phonenumber"]);
+    }
+}
+
+// ---------------------------
+// DELETE: Delete Data
+// ---------------------------
+elseif ($method === 'DELETE') {
+    $data = json_decode(file_get_contents("php://input"));
+
+    if (!empty($data->id)) {
+        $id = $conn->real_escape_string($data->id);
+
+        $sql = "DELETE FROM user WHERE id = $id";
+
+        if ($conn->query($sql) === TRUE) {
+            echo json_encode(["status" => true, "message" => "User deleted successfully"]);
+        } else {
+            echo json_encode(["status" => false, "message" => "Delete failed: " . $conn->error]);
+        }
+    } else {
+        echo json_encode(["status" => false, "message" => "Missing required field: id"]);
+    }
+}
+
+// ---------------------------
 // GET: Fetch Data
 // ---------------------------
 elseif ($method === 'GET') {
