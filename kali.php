@@ -14,13 +14,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $data = json_decode(file_get_contents("php://input"), true);
 
-if (!isset($data['djname']) || !isset($data['password'])) {
-    echo json_encode(["status" => false, "message" => "Missing djname or password"]);
+if (!isset($data['djname']) || !isset($data['password']) || !isset($data['action'])) {
+    echo json_encode(["status" => false, "message" => "Missing djname, password, or action"]);
     exit;
 }
 
 $djname = $data['djname'];
 $password = $data['password'];
+$action = $data['action'];
 
 $conn = new mysqli("localhost", "root", "", "usersdb");
 
@@ -34,37 +35,50 @@ $stmt->bind_param("s", $djname);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    $user = $result->fetch_assoc();
-    if (password_verify($password, $user['password'])) {
-        echo json_encode([
-            "status" => true,
-            "message" => "Login successful",
-            "user" => [
-                "id" => $user['id'],
-                "djname" => $user['djname']
-            ]
-        ]);
+if ($action === 'login') {
+    if ($result->num_rows > 0) {
+        $user = $result->fetch_assoc();
+        if (password_verify($password, $user['password'])) {
+            echo json_encode([
+                "status" => true,
+                "message" => "Login successful",
+                "user" => [
+                    "id" => $user['id'],
+                    "djname" => $user['djname']
+                ]
+            ]);
+        } else {
+            echo json_encode(["status" => false, "message" => "Incorrect password"]);
+        }
     } else {
-        echo json_encode(["status" => false, "message" => "Incorrect password"]);
+        echo json_encode(["status" => false, "message" => "User not found"]);
     }
-} else {
-    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-    $stmt = $conn->prepare("INSERT INTO credential (djname, password) VALUES (?, ?)");
-    $stmt->bind_param("ss", $djname, $hashedPassword);
 
-    if ($stmt->execute()) {
-        echo json_encode([
-            "status" => true,
-            "message" => "User registered successfully",
-            "user" => [
-                "id" => $stmt->insert_id,
-                "djname" => $djname
-            ]
-        ]);
+} elseif ($action === 'register') {
+    if ($result->num_rows > 0) {
+        echo json_encode(["status" => false, "message" => "DJ name already exists"]);
     } else {
-        echo json_encode(["status" => false, "message" => "Registration failed"]);
+        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+        $insertStmt = $conn->prepare("INSERT INTO credential (djname, password) VALUES (?, ?)");
+        $insertStmt->bind_param("ss", $djname, $hashedPassword);
+
+        if ($insertStmt->execute()) {
+            echo json_encode([
+                "status" => true,
+                "message" => "User registered successfully",
+                "user" => [
+                    "id" => $insertStmt->insert_id,
+                    "djname" => $djname
+                ]
+            ]);
+        } else {
+            echo json_encode(["status" => false, "message" => "Registration failed"]);
+        }
+        $insertStmt->close();
     }
+
+} else {
+    echo json_encode(["status" => false, "message" => "Invalid action"]);
 }
 
 $stmt->close();
