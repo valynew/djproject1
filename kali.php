@@ -36,23 +36,29 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 if ($action === 'login') {
-    if ($result->num_rows > 0) {
-        $user = $result->fetch_assoc();
-        if (password_verify($password, $user['password'])) {
+    // 👇 REPLACED LOGIN BLOCK STARTS HERE
+    $stmt = $conn->prepare("SELECT * FROM credential WHERE djname = ?");
+    $stmt->bind_param("s", $djname);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($row = $result->fetch_assoc()) {
+        if (password_verify($password, $row['password'])) {
             echo json_encode([
                 "status" => true,
                 "message" => "Login successful",
                 "user" => [
-                    "id" => $user['id'],
-                    "djname" => $user['djname']
+                    "id" => $row['id'],
+                    "djname" => $row['djname']
                 ]
             ]);
         } else {
-            echo json_encode(["status" => false, "message" => "Incorrect password"]);
+            echo json_encode(["status" => false, "message" => "Invalid password"]);
         }
     } else {
         echo json_encode(["status" => false, "message" => "User not found"]);
     }
+    // 👆 REPLACED LOGIN BLOCK ENDS HERE
 
 } elseif ($action === 'register') {
     if ($result->num_rows > 0) {

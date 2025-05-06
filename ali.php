@@ -16,8 +16,43 @@ if ($conn->connect_error) {
     exit();
 }
 
+// Extra GET parameter to switch between tables
+$table = isset($_GET['table']) ? $_GET['table'] : 'user';
+
+// GET: Fetch all DJs from djform
+if ($method === 'GET' && $table === 'djform') {
+    $sql = "SELECT * FROM djform";
+    $result = $conn->query($sql);
+
+    $djs = [];
+
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $djs[] = $row;
+        }
+        echo json_encode($djs); // Return plain array
+    } else {
+        echo json_encode([]);
+    }
+}
+// GET: Fetch all users from user table (default)
+elseif ($method === 'GET') {
+    $sql = "SELECT id, djname, email, phonenumber FROM user";
+    $result = $conn->query($sql);
+
+    $users = [];
+
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $users[] = $row;
+        }
+        echo json_encode(["status" => true, "data" => $users]);
+    } else {
+        echo json_encode(["status" => false, "message" => "No users found"]);
+    }
+}
 // POST: Insert a user
-if ($method === 'POST') {
+elseif ($method === 'POST') {
     $data = json_decode(file_get_contents("php://input"));
 
     if (!empty($data->djname) && !empty($data->email) && !empty($data->phonenumber)) {
@@ -69,25 +104,16 @@ elseif ($method === 'DELETE') {
     } else {
         echo json_encode(["status" => false, "message" => "Missing required field: id"]);
     }
-}
-// GET: Fetch all users
-elseif ($method === 'GET') {
-    $sql = "SELECT id, djname, email, phonenumber FROM user";
-    $result = $conn->query($sql);
-
-    $users = [];
-
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $users[] = $row;
-        }
-        echo json_encode(["status" => true, "data" => $users]);
-    } else {
-        echo json_encode(["status" => false, "message" => "No users found"]);
-    }
 } else {
     echo json_encode(["status" => false, "message" => "Unsupported request method"]);
 }
 
 $conn->close();
 ?>
+
+
+
+   
+ 
+
+ 
